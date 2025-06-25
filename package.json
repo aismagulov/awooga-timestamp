@@ -1,0 +1,20 @@
+{
+  "name": "my-chrome-extension",
+  "version": "1.0.0",
+  "description": "A Chrome extension that does amazing things.",
+  "main": "src/background.js",
+  "scripts": {
+    "build": "echo 'Building the extension...'",
+    "test": "echo 'Running tests...'",
+    "lint": "echo 'Linting the code...'"
+  },
+  "keywords": [
+    "chrome",
+    "extension",
+    "browser"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
