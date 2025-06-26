@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "My Chrome Extension",
+  "name": "Awooga Time",
   "version": "1.0",
-  "description": "A simple Chrome extension for demonstration purposes.",
+  "description": "Converts timestamps to human-friendly format.",
   "permissions": [
     "activeTab",
     "scripting",
