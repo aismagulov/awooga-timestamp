@@ -1,6 +1,8 @@
 // Access and modify the content of the current page
 
-chrome.storage.sync.get(['savedUrls'], function(result) {
+chrome.storage.sync.get(['savedUrls', 'timezone'], function(result) {
+    let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
+
     if (result.savedUrls) {
         // result.savedUrls is a comma-separated string
         const urls = result.savedUrls.split(',').map(url => url.trim());
@@ -9,20 +11,20 @@ chrome.storage.sync.get(['savedUrls'], function(result) {
     } else {
         console.log('No URLs saved in storage.');
     }
-    detectTimestampsInBody();
+    detectTimestampsInBody(timezone);
     replaceParagraphText();
 
     let count = 0;
     const intervalId = setInterval(() => {
         count++;
-        detectTimestampsInBody();
+        detectTimestampsInBody(timezone);
         if (count >= 3) {
             clearInterval(intervalId);
         }
     }, 5000);
 });
 
-function detectTimestampsInBody() {
+function detectTimestampsInBody(timezone) {
     const min = new Date('2010-01-01').getTime();
     const max = new Date('2050-12-31').getTime();
     const regex = /\b\d{13}\b/g;
@@ -84,27 +86,40 @@ function detectTimestampsInBody() {
                 replaced = true;
                 const date = new Date(n);
                 const pad = v => v.toString().padStart(2, '0');
-                const formatted =
-                    pad(date.getDate()) + '-' +
-                    pad(date.getMonth() + 1) + '-' +
-                    date.getFullYear() + ' ' +
-                    pad(date.getHours()) + ':' +
-                    pad(date.getMinutes()) + ':' +
-                    pad(date.getSeconds());
+                let formatted;
+                if (timezone === 'GMT') {
+                    formatted =
+                        pad(date.getUTCDate()) + '-' +
+                        pad(date.getUTCMonth() + 1) + '-' +
+                        date.getUTCFullYear() + ' ' +
+                        pad(date.getUTCHours()) + ':' +
+                        pad(date.getUTCMinutes()) + ':' +
+                        pad(date.getUTCSeconds());
+                } else {
+                    formatted =
+                        pad(date.getDate()) + '-' +
+                        pad(date.getMonth() + 1) + '-' +
+                        date.getFullYear() + ' ' +
+                        pad(date.getHours()) + ':' +
+                        pad(date.getMinutes()) + ':' +
+                        pad(date.getSeconds());
+                }
                 return `${match}[[[${formatted}]]]`;
             }
             return match;
         });
 
-        if (replaced) {
-            const span = document.createElement('span');
-            span.className = 'timestamp-processed';
-            span.innerHTML = node.nodeValue.replace(
-                /\[\[\[(.*?)\]\]\]/g,
-                '<span class="detected-timestamp-annotation" style="font-size:smaller; color:#4B2E05;"> [<span style="font-family:monospace;">$1</span>]</span>'
-            );
-            node.parentNode.replaceChild(span, node);
-        }
+       if (replaced) {
+        const span = document.createElement('span');
+        span.className = 'timestamp-processed';
+        // Store the original text as a data attribute
+        span.dataset.originalText = node.nodeValue;
+        span.innerHTML = node.nodeValue.replace(
+            /\[\[\[(.*?)\]\]\]/g,
+            '<span class="detected-timestamp-annotation" style="font-size:smaller; color:#4B2E05;"> [<span style="font-family:monospace;">$1</span>]</span>'
+        );
+        node.parentNode.replaceChild(span, node);
+    }
     }
 }
 
@@ -120,3 +135,25 @@ function replaceParagraphText() {
       console.log(`paragrah detected`);
     });
 }
+
+function removeTimestampAnnotations() {
+    document.querySelectorAll('span.timestamp-processed').forEach(span => {
+        // Restore the original text from the data attribute, or fallback to textContent
+        let original = span.dataset.originalText || span.textContent;
+        // Remove any [[[...]]] markers from previous runs
+        original = original.replace(/\[\[\[.*?\]\]\]/g, '');
+        const replacement = document.createTextNode(original);
+        span.replaceWith(replacement);
+    });
+}
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.action === "detectTimestamps") {
+        chrome.storage.sync.get(['timezone'], function(result) {
+            let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
+            removeTimestampAnnotations();
+            detectTimestampsInBody(timezone);
+            console.log("Selected timezone:", timezone);
+        });
+    }
+});
