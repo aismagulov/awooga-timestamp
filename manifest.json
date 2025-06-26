@@ -5,7 +5,6 @@
   "description": "Converts timestamps to human-friendly format.",
   "permissions": [
     "activeTab",
-    "scripting",
     "storage"
   ],
   "background": {
