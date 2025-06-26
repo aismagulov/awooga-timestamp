@@ -1,27 +1,39 @@
 // Access and modify the content of the current page
-
 chrome.storage.sync.get(['savedUrls', 'timezone'], function(result) {
     let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
+    let shouldRun = true;
 
+    // Check whitelist
     if (result.savedUrls) {
-        // result.savedUrls is a comma-separated string
-        const urls = result.savedUrls.split(',').map(url => url.trim());
-        console.log('Saved URLs:', urls);
-        // You can now use the URLs as needed
+        // Split by newlines instead of commas
+        const masks = result.savedUrls.split('\n').map(url => url.trim()).filter(Boolean);
+        const currentUrl = window.location.href;
+        shouldRun = urlMatchesWhitelist(currentUrl, masks);
+        // ...existing code...
+
+        if (!shouldRun) {
+            console.log('Page not whitelisted, extension inactive.');
+            return;
+        }
+        console.log('Saved URLs:', masks);
     } else {
         console.log('No URLs saved in storage.');
     }
-    detectTimestampsInBody(timezone);
-    replaceParagraphText();
 
-    let count = 0;
-    const intervalId = setInterval(() => {
-        count++;
+    // Only run if whitelisted
+    if (shouldRun) {
         detectTimestampsInBody(timezone);
-        if (count >= 3) {
-            clearInterval(intervalId);
-        }
-    }, 5000);
+        replaceParagraphText();
+
+        let count = 0;
+        const intervalId = setInterval(() => {
+            count++;
+            detectTimestampsInBody(timezone);
+            if (count >= 3) {
+                clearInterval(intervalId);
+            }
+        }, 5000);
+    }
 });
 
 function detectTimestampsInBody(timezone) {
@@ -149,11 +161,33 @@ function removeTimestampAnnotations() {
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     if (request.action === "detectTimestamps") {
-        chrome.storage.sync.get(['timezone'], function(result) {
+        chrome.storage.sync.get(['savedUrls', 'timezone'], function(result) {
             let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
+            const masks = result.savedUrls ? result.savedUrls.split('\n').map(url => url.trim()).filter(Boolean) : [];
+            const currentUrl = window.location.href;
+            if (masks.length && !urlMatchesWhitelist(currentUrl, masks)) {
+                console.log('Page not whitelisted, extension inactive.');
+                return;
+            }
             removeTimestampAnnotations();
             detectTimestampsInBody(timezone);
             console.log("Selected timezone:", timezone);
         });
     }
 });
+
+function urlMatchesWhitelist(url, masks) {
+    return masks.some(mask => {
+        // Escape regex special chars except *
+        let regexStr = '^' + mask.trim().replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&').replace(/\*/g, '.*');
+        // Make trailing slash optional
+        if (regexStr.endsWith('\\/')) {
+            regexStr = regexStr.slice(0, -2) + '(\\/)?';
+        } else {
+            regexStr += '(\\/)?';
+        }
+        regexStr += '$';
+        const regex = new RegExp(regexStr);
+        return regex.test(url);
+    });
+}

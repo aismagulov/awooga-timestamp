@@ -22,10 +22,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        const saveSuccess = document.getElementById('saveSuccess');
+
         saveUrlsButton.addEventListener('click', function() {
-            const urls = urlTextarea.value;
+            const urls = urlTextarea.value
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean)
+                .join('\n');
             chrome.storage.sync.set({ savedUrls: urls }, function() {
-                alert('URLs saved!');
+                if (saveSuccess) {
+                    saveSuccess.style.display = 'inline';
+                    setTimeout(() => {
+                        saveSuccess.style.display = 'none';
+                    }, 1500);
+                }
             });
         });
     }
