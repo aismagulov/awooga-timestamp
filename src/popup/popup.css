@@ -1,3 +1,9 @@
+/* Extracted from popup.html */
+.save-success {
+    display: none;
+    color: green;
+    font-size: 1.2em;
+}
 body {
     font-family: Arial, sans-serif;
     margin: 0;

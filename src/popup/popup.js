@@ -1,6 +1,25 @@
 // This file contains the JavaScript for the popup. It handles user interactions and communicates with the background script if necessary.
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Milliseconds/Seconds toggle functionality
+    const msToggle = document.getElementById('msToggle');
+    if (msToggle) {
+        // Load saved ms/seconds preference, default to milliseconds
+        chrome.storage.sync.get(['timestampUnit'], function(result) {
+            const value = result.timestampUnit === 'seconds' ? 'seconds' : 'milliseconds';
+            msToggle.checked = value === 'milliseconds';
+        });
+
+        msToggle.addEventListener('change', function() {
+            const value = msToggle.checked ? 'milliseconds' : 'seconds';
+            chrome.storage.sync.set({ timestampUnit: value }, function() {
+                // After saving, trigger re-annotation
+                chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: "detectTimestamps" });
+                });
+            });
+        });
+    }
     const button = document.getElementById('myButton');
     if (button) {
         button.addEventListener('click', function() {

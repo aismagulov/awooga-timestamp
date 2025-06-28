@@ -11,15 +11,23 @@
     <textarea id="urlTextarea" rows="4" cols="30" placeholder="Enter comma-separated URLs"></textarea>
     <br>
     <button id="saveUrlsButton">Save URLs</button>
-    <span id="saveSuccess" style="display:none; color:green; font-size:1.2em;">&#10003;</span>
+    <span id="saveSuccess" class="save-success">&#10003;</span>
     
 
     <div>
         <label>
             <input type="checkbox" id="timezoneToggle">
-            Show timestamps in GMT
+            Show timestamps in timezone:
         </label>
         <span id="timezoneLabel" style="margin-left:8px;"></span>
+    </div>
+
+    <div>
+        <label>
+            <input type="checkbox" id="msToggle" checked>
+            Detect timestamps in milliseconds (13 digits)
+        </label>
+    </div>
     </div>
 
     <button id="detectTimestampsBtn">Detect Timestamps</button>
