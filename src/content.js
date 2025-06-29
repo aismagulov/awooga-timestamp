@@ -1,3 +1,6 @@
+const TIMESTAMP_RANGE_START = '2002-01-01';
+const TIMESTAMP_RANGE_END = '2050-12-31';
+
 // Access and modify the content of the current page
 chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(result) {
     let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
@@ -29,7 +32,7 @@ chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(res
         const intervalId = setInterval(() => {
             count++;
             detectTimestampsInBody(timezone, timestampUnit);
-            if (count >= 3) {
+            if (count >= 1) {
                 clearInterval(intervalId);
             }
         }, 5000);
@@ -42,12 +45,12 @@ function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
 
     let min, max, regex;
     if (timestampUnit === 'seconds') {
-        min = Math.floor(new Date('2010-01-01').getTime() / 1000);
-        max = Math.floor(new Date('2050-12-31').getTime() / 1000);
+        min = Math.floor(new Date(TIMESTAMP_RANGE_START).getTime() / 1000);
+        max = Math.floor(new Date(TIMESTAMP_RANGE_END).getTime() / 1000);
         regex = /(?<!\d)(\d{10})(?!\d)/g;
     } else {
-        min = new Date('2010-01-01').getTime();
-        max = new Date('2050-12-31').getTime();
+        min = new Date(TIMESTAMP_RANGE_START).getTime();
+        max = new Date(TIMESTAMP_RANGE_END).getTime();
         regex = /(?<!\d)(\d{13})(?!\d)/g;
     }
 
