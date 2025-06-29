@@ -1,7 +1,6 @@
 const TIMESTAMP_RANGE_START = '2002-01-01';
 const TIMESTAMP_RANGE_END = '2050-12-31';
 
-// Access and modify the content of the current page
 chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(result) {
     let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
     let timestampUnit = result.timestampUnit === 'seconds' ? 'seconds' : 'milliseconds';
@@ -9,11 +8,9 @@ chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(res
 
     // Check whitelist
     if (result.savedUrls) {
-        // Split by newlines instead of commas
         const masks = result.savedUrls.split('\n').map(url => url.trim()).filter(Boolean);
         const currentUrl = window.location.href;
         shouldRun = urlMatchesWhitelist(currentUrl, masks);
-        // ...existing code...
 
         if (!shouldRun) {
             console.log('Page not whitelisted, extension inactive.');
@@ -24,7 +21,6 @@ chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(res
         console.log('No URLs saved in storage.');
     }
 
-    // Only run if whitelisted
     if (shouldRun) {
         detectTimestampsInBody(timezone, timestampUnit);
 
@@ -54,7 +50,6 @@ function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
         regex = /(?<!\d)(\d{13})(?!\d)/g;
     }
 
-    // Walk all text nodes in the body (no need to skip processed/annotated nodes)
     const walker = doc.createTreeWalker(
         doc.body,
         NodeFilter.SHOW_TEXT,
@@ -148,7 +143,6 @@ function removeTimestampAnnotations() {
     document.querySelectorAll('span.timestamp-processed').forEach(span => {
         // Restore the original text from the data attribute, or fallback to textContent
         let original = span.dataset.originalText || span.textContent;
-        // Remove any [[[...]]] markers from previous runs
         original = original.replace(/\[\[\[.*?\]\]\]/g, '');
         const replacement = document.createTextNode(original);
         span.replaceWith(replacement);
@@ -184,7 +178,6 @@ function urlMatchesWhitelist(url, masks) {
         return true;
     }
     return masks.some(mask => {
-        // Escape regex special chars except *
         let regexStr = '^' + mask.trim().replace(/[-\/\\^$+?.()|[\]{}]/g, '\\$&').replace(/\*/g, '.*');
         // Make trailing slash optional
         if (regexStr.endsWith('\\/')) {

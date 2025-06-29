@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Awooga Time",
+  "name": "Awooga Timestamp",
   "version": "1.0",
   "description": "Converts timestamps to human-friendly format.",
   "permissions": [

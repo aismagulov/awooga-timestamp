@@ -1,11 +1,9 @@
-// This file contains the JavaScript for the popup. It handles user interactions and communicates with the background script if necessary.
-
 document.addEventListener('DOMContentLoaded', function() {
     // Milliseconds/Seconds toggle functionality
     const msToggle = document.getElementById('msToggle');
     const msLabel = document.getElementById('msLabel');
     function updateMsLabel() {
-        msLabel.textContent = msToggle.checked ? 'Milliseconds (13 digits)' : 'Seconds (10 digits)';
+        msLabel.textContent = msToggle.checked ? 'milliseconds' : 'seconds';
     }
 
     if (msToggle) {
@@ -13,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chrome.storage.sync.get(['timestampUnit'], function(result) {
             const value = result.timestampUnit === 'seconds' ? 'seconds' : 'milliseconds';
             msToggle.checked = value === 'milliseconds';
+            updateMsLabel();
         });
 
         msToggle.addEventListener('change', function() {
@@ -25,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             updateMsLabel();
         });
-        updateMsLabel(); // Set initial label
+        
     }
     const button = document.getElementById('myButton');
     if (button) {
