@@ -24,7 +24,6 @@ chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(res
     // Only run if whitelisted
     if (shouldRun) {
         detectTimestampsInBody(timezone, timestampUnit);
-        replaceParagraphText();
 
         let count = 0;
         const intervalId = setInterval(() => {
@@ -37,7 +36,10 @@ chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(res
     }
 });
 
-function detectTimestampsInBody(timezone, timestampUnit) {
+function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
+    // Always clean up previous annotations first
+    removeTimestampAnnotations();
+
     let min, max, regex;
     if (timestampUnit === 'seconds') {
         min = Math.floor(new Date('2010-01-01').getTime() / 1000);
@@ -49,37 +51,13 @@ function detectTimestampsInBody(timezone, timestampUnit) {
         regex = /(?<!\d)(\d{13})(?!\d)/g;
     }
 
-    // Helper to check if a node is inside a processed span
-    function isInsideProcessedSpan(node) {
-        while (node && node !== document.body) {
-            if (
-                node.nodeType === Node.ELEMENT_NODE &&
-                node.classList &&
-                node.classList.contains('timestamp-processed')
-            ) {
-                return true;
-            }
-            node = node.parentNode;
-        }
-        return false;
-    }
-
-    // Walk all text nodes in the body
-    const walker = document.createTreeWalker(
-        document.body,
+    // Walk all text nodes in the body (no need to skip processed/annotated nodes)
+    const walker = doc.createTreeWalker(
+        doc.body,
         NodeFilter.SHOW_TEXT,
         {
             acceptNode: function(node) {
-                // Skip any text node inside a processed span
-                if (isInsideProcessedSpan(node)) {
-                    return NodeFilter.FILTER_REJECT;
-                }
-                // Also skip annotation spans
-                if (
-                    node.parentNode &&
-                    node.parentNode.nodeType === Node.ELEMENT_NODE &&
-                    node.parentNode.matches('span.detected-timestamp-annotation')
-                ) {
+                if (node.nodeValue.trim().length === 0) {
                     return NodeFilter.FILTER_REJECT;
                 }
                 return NodeFilter.FILTER_ACCEPT;
@@ -98,7 +76,6 @@ function detectTimestampsInBody(timezone, timestampUnit) {
     // Now process each text node
     for (const node of textNodes) {
         let originalText = node.nodeValue;
-        // console.log('Walker node:', originalText);
         let replacedText = '';
         let lastIndex = 0;
         let hasReplacement = false;
@@ -108,14 +85,6 @@ function detectTimestampsInBody(timezone, timestampUnit) {
             const match = matchArray[0];
             const matchStart = matchArray.index;
             const matchEnd = matchStart + match.length;
-            // Check if already annotated
-            const afterMatch = originalText.slice(matchEnd, matchEnd + 40);
-            const annotationPattern = /\[\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2}\]/;
-            if (annotationPattern.test(afterMatch)) {
-                replacedText += originalText.slice(lastIndex, matchEnd);
-                lastIndex = matchEnd;
-                continue;
-            }
             const n = Number(match);
             let date;
             let valid = false;
@@ -172,19 +141,6 @@ function detectTimestampsInBody(timezone, timestampUnit) {
     }
 }
 
-/**
- * Replaces the text content of all <p> elements on the page.
- * @param {string} newText - The text to set for all paragraphs.
- */
-function replaceParagraphText() {
-    const currentUrl = window.location.href;
-    console.log("Current page URL:", currentUrl);
-
-    document.querySelectorAll('p').forEach(p => {
-      console.log(`paragrah detected`);
-    });
-}
-
 function removeTimestampAnnotations() {
     document.querySelectorAll('span.timestamp-processed').forEach(span => {
         // Restore the original text from the data attribute, or fallback to textContent
@@ -201,19 +157,24 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(result) {
             let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
             let timestampUnit = result.timestampUnit === 'seconds' ? 'seconds' : 'milliseconds';
-            const masks = result.savedUrls ? result.savedUrls.split('\n').map(url => url.trim()).filter(Boolean) : [];
-            const currentUrl = window.location.href;
-            if (masks.length && !urlMatchesWhitelist(currentUrl, masks)) {
-                console.log('Page not whitelisted, extension inactive.');
-                return;
+            let shouldRun = true;
+
+            // Only check whitelist if not forced
+            if (!request.force && result.savedUrls) {
+                const masks = result.savedUrls.split('\n').map(url => url.trim()).filter(Boolean);
+                const currentUrl = window.location.href;
+                shouldRun = urlMatchesWhitelist(currentUrl, masks);
+                if (!shouldRun) {
+                    console.log('Page not whitelisted, extension inactive.');
+                    return;
+                }
             }
-            removeTimestampAnnotations();
+
+            // Run detection
             detectTimestampsInBody(timezone, timestampUnit);
-            console.log("Selected timezone:", timezone, "Selected unit:", timestampUnit);
         });
     }
 });
-
 function urlMatchesWhitelist(url, masks) {
     // If no masks, allow all URLs
     if (!masks || masks.length === 0) {
@@ -233,3 +194,6 @@ function urlMatchesWhitelist(url, masks) {
         return regex.test(url);
     });
 }
+
+window.detectTimestampsInBody = detectTimestampsInBody;
+window.removeTimestampAnnotations = removeTimestampAnnotations;

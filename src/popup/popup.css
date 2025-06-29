@@ -41,3 +41,19 @@ input[type="text"] {
     color: red;
     font-size: 14px;
 }
+
+#detectTimestampsBtn {
+  float: right;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 10px 0px;
+}
+
+#detectTimestampsBtn:hover {
+  background-color: #218838;
+}

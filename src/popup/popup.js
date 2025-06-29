@@ -3,6 +3,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Milliseconds/Seconds toggle functionality
     const msToggle = document.getElementById('msToggle');
+    const msLabel = document.getElementById('msLabel');
+    function updateMsLabel() {
+        msLabel.textContent = msToggle.checked ? 'Milliseconds (13 digits)' : 'Seconds (10 digits)';
+    }
+
     if (msToggle) {
         // Load saved ms/seconds preference, default to milliseconds
         chrome.storage.sync.get(['timestampUnit'], function(result) {
@@ -18,7 +23,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     chrome.tabs.sendMessage(tabs[0].id, { action: "detectTimestamps" });
                 });
             });
+            updateMsLabel();
         });
+        updateMsLabel(); // Set initial label
     }
     const button = document.getElementById('myButton');
     if (button) {
@@ -84,25 +91,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Detect timestamps button functionality
     const detectBtn = document.getElementById('detectTimestampsBtn');
-if (detectBtn) {
-    detectBtn.addEventListener('click', function() {
-        chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-            chrome.tabs.sendMessage(tabs[0].id, { action: "detectTimestamps" });
-        });
-    });
-}
-
-if (timezoneToggle && timezoneLabel) {
-    // ...existing code...
-    timezoneToggle.addEventListener('change', function() {
-        const value = timezoneToggle.checked ? 'GMT' : 'LOCAL';
-        chrome.storage.sync.set({ timezone: value }, function() {
-            // After saving, trigger re-annotation
+    if (detectBtn) {
+        detectBtn.addEventListener('click', function() {
             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
                 chrome.tabs.sendMessage(tabs[0].id, { action: "detectTimestamps" });
             });
         });
-        updateLabel(value);
+    }
+    document.getElementById('detectTimestampsBtn').addEventListener('click', function() {
+        // Send a message to the content script to force timestamp detection
+        chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+            chrome.tabs.sendMessage(
+                tabs[0].id,
+                { action: "detectTimestamps", force: true }
+            );
+        });
     });
-}
+
+    if (timezoneToggle && timezoneLabel) {
+        // ...existing code...
+        timezoneToggle.addEventListener('change', function() {
+            const value = timezoneToggle.checked ? 'GMT' : 'LOCAL';
+            chrome.storage.sync.set({ timezone: value }, function() {
+                // After saving, trigger re-annotation
+                chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+                    chrome.tabs.sendMessage(tabs[0].id, { action: "detectTimestamps" });
+                });
+            });
+            updateLabel(value);
+        });
+    }
 });

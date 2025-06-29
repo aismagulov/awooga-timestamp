@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manual Test Runner</title>
+  <style>
+  #test-results td:nth-child(2) {
+    font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Arial", sans-serif;
+    font-size: 1.2em;
+  }
+</style>
+</head>
+<body>
+  <script src="testSetup.js"></script>
+  <script src="../src/content.js"></script>
+  <script src="testTimestampDetection.js"></script>
+  <script>
+    function logTestResult(testName, passed, details = "") {
+      const table = document.getElementById('test-results').getElementsByTagName('tbody')[0];
+      const row = table.insertRow();
+      row.insertCell(0).innerText = testName;
+      row.insertCell(1).innerText = passed ? "\u2705 PASS" : "\u274C FAIL";
+      row.insertCell(2).innerText = details;
+      row.style.backgroundColor = passed ? "#d4ffd4" : "#ffd4d4";
+    }
+
+    testDetectTimestampsInBodyOnTestHtml('data/test.html', 5)
+      .then(() => logTestResult('testDetectTimestampsInBodyOnTestHtml', true))
+      .catch(err => logTestResult('testDetectTimestampsInBodyOnTestHtml', false, err.message));
+  </script>
+
+
+  <table id="test-results" border="1">
+  <thead>
+    <tr>
+      <th>Test Name</th>
+      <th>Result</th>
+      <th>Details</th>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+</body>
+</html>
