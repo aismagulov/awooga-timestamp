@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kafka Message Example</title>
+    <style>
+        body {
+            background: #f7f7f7;
+            font-family: "Fira Mono", "Consolas", "Menlo", monospace;
+            padding: 40px;
+        }
+        .kafka-message {
+            background: #222;
+            color: #d4ffd4;
+            padding: 24px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            max-width: 700px;
+            margin: auto;
+            white-space: pre;
+        }
+        .title {
+            font-size: 1.3em;
+            color: #1976d2;
+            margin-bottom: 18px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">Kafka Message Example</div>
+    <div class="kafka-message">
+{
+  "topic": "user.activity",
+  "partition": 2,
+  "offset": 105432,
+  "key": "user-42",
+  "timestamp": 1719820800,
+  "value": {
+    "userId": 42,
+    "action": "login",
+    "eventTime": 1750345733942,
+    "session": {
+      "sessionId": "abc123",
+      "start": 1750345700000,
+      "end": 1750345733942
+    },
+    "metadata": {
+      "ip": "192.168.1.10",
+      "receivedAt": 1719820850
+    }
+  }
+}
+    </div>
+</body>
+</html>
