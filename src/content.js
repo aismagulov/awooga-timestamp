@@ -31,7 +31,7 @@ chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(res
             if (count >= 1) {
                 clearInterval(intervalId);
             }
-        }, 5000);
+        }, 3000);
     }
 });
 
@@ -132,7 +132,20 @@ function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
             span.dataset.originalText = replacedText;
             span.innerHTML = replacedText.replace(
                 /\[\[\[(.*?)\]\]\]/g,
-                '<span class="detected-timestamp-annotation" style="font-size:smaller; color:#4B2E05;"> [<span style="font-family:monospace;">$1</span>]</span>'
+                function(_, formatted, offset, str) {
+                    const before = str.slice(0, offset);
+                    const numMatch = before.match(/(\d{10,13})$/);
+                    let tsValue = 0;
+                    if (numMatch) {
+                        tsValue = Number(numMatch[1]);
+                        if (timestampUnit === 'seconds' && tsValue < 1e12) {
+                            tsValue *= 1000;
+                        }
+                    }
+                    const now = Date.now();
+                    const color = tsValue >= now ? '#3ead6b' : '#d5ad75';
+                    return `<span class="detected-timestamp-annotation" style="font-size:smaller; color:${color};"> [<span style="font-family:monospace;">${formatted}</span>]</span>`;
+                }
             );
             node.parentNode.replaceChild(span, node);
         }
@@ -172,6 +185,16 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
         });
     }
 });
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.action === "detectTimestamps") {
+        // ...existing code...
+    }
+    if (request.action === "cleanTimestamps") {
+        removeTimestampAnnotations();
+    }
+});
+
 function urlMatchesWhitelist(url, masks) {
     // If no masks, allow all URLs
     if (!masks || masks.length === 0) {
