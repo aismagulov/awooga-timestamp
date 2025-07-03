@@ -1,5 +1,5 @@
 # Awooga Timestamp
-Awooga Timestamp is an extension that automatically detects Unix timestamps (in seconds or milliseconds) on any webpage and appends a human-readable date and time format like `[27-06-2025 18:57:30]`.
+Awooga Timestamp is an extension that automatically detects Unix timestamps (in seconds or milliseconds) on any webpage and appends a human-readable date and time format like `[27-06-2025 18:57:30]`. The date is colored green or orange, depending if it is in the future or in the past.
 
 ## Force Run
 If you are on a non-whitelisted page and still want to interpret timestamps, you can click the green "Run" button in the extension's popup.
