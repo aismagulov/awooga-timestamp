@@ -3,6 +3,8 @@ const PROCESSED_CLASS = 'timestamp-processed';
 const TIMESTAMP_RANGE_START = '2002-01-01';
 const TIMESTAMP_RANGE_END = '2050-12-31';
 
+// TODO
+// add
 chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(result) {
     let timezone = result.timezone === 'GMT' ? 'GMT' : 'LOCAL';
     let timestampUnit = result.timestampUnit === 'seconds' ? 'seconds' : 'milliseconds';
@@ -44,11 +46,11 @@ function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
     if (timestampUnit === 'seconds') {
         min = Math.floor(new Date(TIMESTAMP_RANGE_START).getTime() / 1000);
         max = Math.floor(new Date(TIMESTAMP_RANGE_END).getTime() / 1000);
-        regex = /(?<!\d)(\d{10})(?!\d)/g;
+        regex = /(?<![a-zA-Z\d_])(\d{10})(?![a-zA-Z\d_])/g;
     } else {
         min = new Date(TIMESTAMP_RANGE_START).getTime();
         max = new Date(TIMESTAMP_RANGE_END).getTime();
-        regex = /(?<!\d)(\d{13})(?!\d)/g;
+        regex = /(?<![a-zA-Z\d_])(\d{13})(?![a-zA-Z\d_])/g;
     }
 
     const walker = doc.createTreeWalker(
