@@ -1,3 +1,5 @@
+const ANNOTATION_CLASS = 'detected-timestamp-annotation';
+const PROCESSED_CLASS = 'timestamp-processed';
 const TIMESTAMP_RANGE_START = '2002-01-01';
 const TIMESTAMP_RANGE_END = '2050-12-31';
 
@@ -36,7 +38,6 @@ chrome.storage.sync.get(['savedUrls', 'timezone', 'timestampUnit'], function(res
 });
 
 function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
-    // Always clean up previous annotations first
     removeTimestampAnnotations();
 
     let min, max, regex;
@@ -74,11 +75,11 @@ function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
     // Now process each text node
     for (const node of textNodes) {
         let originalText = node.nodeValue;
-        let replacedText = '';
-        let lastIndex = 0;
-        let hasReplacement = false;
         let matchArray;
         regex.lastIndex = 0; // Reset regex state
+        const matches = [];
+        
+        // Collect all valid matches first
         while ((matchArray = regex.exec(originalText)) !== null) {
             const match = matchArray[0];
             const matchStart = matchArray.index;
@@ -86,6 +87,7 @@ function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
             const n = Number(match);
             let date;
             let valid = false;
+            
             if (timestampUnit === 'seconds') {
                 if (n >= min && n <= max) {
                     date = new Date(n * 1000);
@@ -97,68 +99,75 @@ function detectTimestampsInBody(timezone, timestampUnit, doc = document) {
                     valid = true;
                 }
             }
+            
             if (valid) {
-                hasReplacement = true;
-                const pad = v => v.toString().padStart(2, '0');
-                let formatted;
-                if (timezone === 'GMT') {
-                    formatted =
-                        pad(date.getUTCDate()) + '-' +
-                        pad(date.getUTCMonth() + 1) + '-' +
-                        date.getUTCFullYear() + ' ' +
-                        pad(date.getUTCHours()) + ':' +
-                        pad(date.getUTCMinutes()) + ':' +
-                        pad(date.getUTCSeconds());
-                } else {
-                    formatted =
-                        pad(date.getDate()) + '-' +
-                        pad(date.getMonth() + 1) + '-' +
-                        date.getFullYear() + ' ' +
-                        pad(date.getHours()) + ':' +
-                        pad(date.getMinutes()) + ':' +
-                        pad(date.getSeconds());
-                }
-                replacedText += originalText.slice(lastIndex, matchEnd) + `[[[${formatted}]]]`;
-                lastIndex = matchEnd;
-            } else {
-                replacedText += originalText.slice(lastIndex, matchEnd);
-                lastIndex = matchEnd;
+                let formatted = getFormattedDate(date, timezone);
+                const now = Date.now();
+                let tsValue = timestampUnit === 'seconds' ? n * 1000 : n;
+                const color = tsValue >= now ? '#3ead6b' : '#d5ad75';
+                
+                matches.push({
+                    start: matchStart,
+                    end: matchEnd,
+                    formatted: formatted,
+                    color: color
+                });
             }
         }
-        replacedText += originalText.slice(lastIndex);
-        if (hasReplacement) {
-            const span = document.createElement('span');
-            span.className = 'timestamp-processed';
-            span.dataset.originalText = replacedText;
-            span.innerHTML = replacedText.replace(
-                /\[\[\[(.*?)\]\]\]/g,
-                function(_, formatted, offset, str) {
-                    const before = str.slice(0, offset);
-                    const numMatch = before.match(/(\d{10,13})$/);
-                    let tsValue = 0;
-                    if (numMatch) {
-                        tsValue = Number(numMatch[1]);
-                        if (timestampUnit === 'seconds' && tsValue < 1e12) {
-                            tsValue *= 1000;
-                        }
-                    }
-                    const now = Date.now();
-                    const color = tsValue >= now ? '#3ead6b' : '#d5ad75';
-                    return `<span class="detected-timestamp-annotation" style="font-size:smaller; color:${color};"> [<span style="font-family:monospace;">${formatted}</span>]</span>`;
+        
+        // If we found any valid timestamps, create annotations
+        if (matches.length > 0) {
+            // Process matches in reverse order to maintain correct positions
+            matches.reverse();
+            
+            for (const match of matches) {
+                // Split the text node at the end of the timestamp
+                const afterNode = node.splitText(match.end);
+                const timestampNode = node.splitText(match.start);
+                
+                // Create the annotation span using innerHTML
+                const annotationSpan = document.createElement('span');
+                annotationSpan.className = ANNOTATION_CLASS;
+                annotationSpan.innerHTML = 
+                ` <span style="font-size: smaller; color: ${match.color};">[<span style="font-family: monospace;">${match.formatted}</span>]</span>`;
+                
+                // Insert the annotation after the timestamp
+                timestampNode.parentNode.insertBefore(annotationSpan, afterNode);
+                
+                // Mark the timestamp node as processed
+                if (timestampNode.parentNode.nodeType === Node.ELEMENT_NODE) {
+                    timestampNode.parentNode.classList.add(PROCESSED_CLASS);
                 }
-            );
-            node.parentNode.replaceChild(span, node);
+            }
         }
     }
 }
 
+function getFormattedDate(date, timezone) {
+    const pad = v => v.toString().padStart(2, '0');
+    if (timezone === 'GMT') {
+        return pad(date.getUTCDate()) + '-' +
+            pad(date.getUTCMonth() + 1) + '-' +
+            date.getUTCFullYear() + ' ' +
+            pad(date.getUTCHours()) + ':' +
+            pad(date.getUTCMinutes()) + ':' +
+            pad(date.getUTCSeconds());
+    } else {
+        return pad(date.getDate()) + '-' +
+            pad(date.getMonth() + 1) + '-' +
+            date.getFullYear() + ' ' +
+            pad(date.getHours()) + ':' +
+            pad(date.getMinutes()) + ':' +
+            pad(date.getSeconds());
+    }
+}
 function removeTimestampAnnotations() {
-    document.querySelectorAll('span.timestamp-processed').forEach(span => {
-        // Restore the original text from the data attribute, or fallback to textContent
-        let original = span.dataset.originalText || span.textContent;
-        original = original.replace(/\[\[\[.*?\]\]\]/g, '');
-        const replacement = document.createTextNode(original);
-        span.replaceWith(replacement);
+    document.querySelectorAll(`.${ANNOTATION_CLASS}`).forEach(annotation => {
+        annotation.remove();
+    });
+    
+    document.querySelectorAll(`.${PROCESSED_CLASS}`).forEach(element => {
+        element.classList.remove(PROCESSED_CLASS);
     });
 }
 
