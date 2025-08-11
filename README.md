@@ -20,3 +20,9 @@ You can use use asterisks (`*`) as wildcards in the url masks:
 With checkboxes in the extension popup:
 1. You can choose to convert the timestamps to your local timezone or GMT timezone.
 2. Yon can choose to detect timestamps in seconds or milliseconds. 
+
+## Updates
+
+### 1.1
+* Don't replace timestamps if they are surrounded by digits, letters or underscores.
+* The extension modifies the page more carefully, only adding and removing its own HTML elements.
