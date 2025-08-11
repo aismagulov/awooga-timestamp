@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Awooga Timestamp",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Converts timestamps to human-friendly format.",
   "permissions": [
     "activeTab",
